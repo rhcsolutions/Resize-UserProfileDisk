@@ -32,8 +32,11 @@ cd C:\Path\To\Resize-UserProfileDisk
 # Test the service first (optional)
 .\Test-WebService.ps1
 
-# Install as Windows Service
+# Install as Windows Service (run PowerShell as Administrator)
 .\Install-Service.ps1 -Action Install
+
+# Or use the helper script that will prompt for elevation
+.\Install-AsAdmin.ps1
 
 # The service will start automatically and open your browser
 ```
