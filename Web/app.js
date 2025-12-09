@@ -146,7 +146,8 @@ async function updateServiceStatus() {
         } else {
             document.getElementById('serviceStatus').textContent = '🔴 Service Offline';
         }
-    } catch (_error) {
+    } catch (error) {
+        console.error('Service status check failed:', error);
         document.getElementById('serviceStatus').textContent = '🔴 Connection Error';
     }
 }
@@ -191,8 +192,8 @@ async function updateCurrentJob(jobId) {
         </div>
     `;
         }
-    } catch (_error) {
-        console.error('Error fetching current job:', _error);
+    } catch (error) {
+        console.error('Error fetching current job:', error);
     }
 }async function submitResizeJob(event) {
     event.preventDefault();
@@ -303,7 +304,8 @@ ${job.Errors.length > 0 ? '\nErrors:\n' + job.Errors.join('\n') : ''}
             
             alert(details);
         }
-    } catch (_error) {
+    } catch (error) {
+        console.error('Error fetching job details:', error);
         showNotification('Failed to load job details', 'error');
     }
 }
@@ -336,8 +338,8 @@ async function refreshLogs() {
                 </div>
             `).join('');
         }
-    } catch (_error) {
-        console.error('Error fetching logs:', _error);
+    } catch (error) {
+        console.error('Error fetching logs:', error);
         showNotification('Failed to load logs', 'error');
     }
 }
