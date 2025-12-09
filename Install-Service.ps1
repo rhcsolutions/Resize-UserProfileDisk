@@ -25,7 +25,7 @@ param(
     [int]$Port = 8080,
     
     [Parameter(Mandatory=$false)]
-    [switch]$Debug
+    [switch]$DebugLog
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,8 +52,8 @@ function Write-Log {
     # Write to log file
     Add-Content -Path $logPath -Value $logMessage
     
-    # If Debug mode, write verbose info
-    if ($Debug) {
+    # If DebugLog mode, write verbose info
+    if ($DebugLog) {
         Write-Verbose $logMessage
     }
 }
