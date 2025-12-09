@@ -423,13 +423,37 @@ function Start-HttpServer {
     $Global:ServiceStartTime = Get-Date
     
     $listener = New-Object System.Net.HttpListener
-    $prefix = "http://+:$($Global:Config.Port)/"
-    $listener.Prefixes.Add($prefix)
+    
+    # Try binding to all interfaces first, fallback to localhost
+    $prefixes = @(
+        "http://+:$($Global:Config.Port)/",
+        "http://localhost:$($Global:Config.Port)/"
+    )
+    
+    $bound = $false
+    foreach ($prefix in $prefixes) {
+        try {
+            $listener.Prefixes.Clear()
+            $listener.Prefixes.Add($prefix)
+            $listener.Start()
+            Write-ServiceLog -Severity Information -Message "HTTP Server started on $prefix"
+            $bound = $true
+            break
+        }
+        catch {
+            Write-ServiceLog -Severity Warning -Message "Failed to bind to $prefix : $($_.Exception.Message)"
+            if ($listener.IsListening) {
+                $listener.Stop()
+            }
+        }
+    }
+    
+    if (!$bound) {
+        Write-ServiceLog -Severity Error -Message "Failed to start HTTP listener on any interface"
+        return
+    }
     
     try {
-        $listener.Start()
-        Write-ServiceLog -Severity Information -Message "HTTP Server started on port $($Global:Config.Port)"
-        
         while ($Global:ServiceRunning) {
             # Clean old logs periodically
             if ((Get-Date).Hour -eq 2 -and (Get-Date).Minute -eq 0) {

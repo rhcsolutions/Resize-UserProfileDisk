@@ -29,11 +29,13 @@ A modern web-based service for managing and resizing Windows User Profile Disk (
 # Clone or download the repository
 cd C:\Path\To\Resize-UserProfileDisk
 
+# Test the service first (optional)
+.\Test-WebService.ps1
+
 # Install as Windows Service
 .\Install-Service.ps1 -Action Install
 
-# Start the service
-.\Install-Service.ps1 -Action Start
+# The service will start automatically and open your browser
 ```
 
 ### 2. Access Web Interface
@@ -252,6 +254,17 @@ View logs in real-time via the **Logs** tab in the web interface.
    ```
 
 3. Check service logs in `C:\UPD-Service\Logs\`
+4. Test the service manually:
+
+   ```powershell
+   .\Test-WebService.ps1
+   ```
+
+5. Check URL reservation:
+
+   ```powershell
+   netsh http show urlacl url=http://+:8080/
+   ```
 
 ### Web Interface Not Loading
 

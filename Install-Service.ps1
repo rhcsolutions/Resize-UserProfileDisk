@@ -142,6 +142,16 @@ function Install-Service {
     & $nssmPath set $ServiceName AppRotateFiles 1
     & $nssmPath set $ServiceName AppRotateBytes 1048576
     
+    # Reserve URL for HTTP listener
+    Write-Host "Reserving URL for HTTP listener..." -ForegroundColor Cyan
+    try {
+        $urlReservation = "http://+:$Port/"
+        netsh http add urlacl url=$urlReservation user="NT AUTHORITY\SYSTEM" | Out-Null
+        Write-Host "  URL reservation created: $urlReservation" -ForegroundColor Green
+    } catch {
+        Write-Host "  Warning: Could not create URL reservation. Service will use localhost only." -ForegroundColor Yellow
+    }
+    
     # Configure firewall
     Write-Host "Configuring Windows Firewall..." -ForegroundColor Cyan
     
@@ -212,6 +222,15 @@ function Uninstall-Service {
     # Remove firewall rule
     Write-Host "Removing firewall rule..." -ForegroundColor Cyan
     Remove-NetFirewallRule -DisplayName "UPD Web Service" -ErrorAction SilentlyContinue
+    
+    # Remove URL reservation
+    Write-Host "Removing URL reservation..." -ForegroundColor Cyan
+    try {
+        $urlReservation = "http://+:$Port/"
+        netsh http delete urlacl url=$urlReservation | Out-Null
+    } catch {
+        # Ignore errors if reservation doesn't exist
+    }
     
     Write-Host "`nService uninstalled successfully!" -ForegroundColor Green
     Write-Host "Service files remain at: $ServicePath" -ForegroundColor White
