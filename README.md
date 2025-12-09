@@ -71,6 +71,8 @@ http://localhost:8080
 .\Install-Service.ps1 -Action Restart
 
 # Uninstall the service
+.\Uninstall-Service.ps1
+# or
 .\Install-Service.ps1 -Action Uninstall
 ```
 
