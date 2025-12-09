@@ -83,9 +83,9 @@ Edit `config.json` to customize settings:
 ```json
 {
   "Port": 8080,
-  "LogPath": "C:\\UPD-Service\\Logs",
-  "WebRoot": "C:\\UPD-Service\\Web",
-  "JobHistoryPath": "C:\\UPD-Service\\JobHistory",
+  "LogPath": "C:\\Resize-UserProfileDisk\\Logs",
+  "WebRoot": "C:\\Resize-UserProfileDisk\\Web",
+  "JobHistoryPath": "C:\\Resize-UserProfileDisk\\JobHistory",
   "MaxConcurrentJobs": 1,
   "LogRetentionDays": 30,
   "DefaultUPDPath": "D:\\UPD"
@@ -164,7 +164,7 @@ Invoke-RestMethod -Uri "http://localhost:8080/api/logs?count=50&severity=Error"
 For optimal VHDX compression, download SDelete.exe:
 
 1. Download from: <https://docs.microsoft.com/sysinternals/downloads/sdelete>
-2. Extract `sdelete.exe` to service directory: `C:\UPD-Service\`
+2. Extract `sdelete.exe` to service directory: `C:\Resize-UserProfileDisk\`
 3. Enable "Zero Free Space" option in web interface
 
 ### Firewall Configuration
@@ -175,7 +175,7 @@ The installer automatically creates a firewall rule for port 8080. To use a diff
 2. Update firewall rule:
 
    ```powershell
-   Set-NetFirewallRule -DisplayName "UPD Web Service" -LocalPort 8081
+   Set-NetFirewallRule -DisplayName "Resize-UserProfileDisk" -LocalPort 8081
    ```
 
 3. Restart the service
@@ -196,20 +196,20 @@ To access the web interface from other machines:
 **Service Logs** (JSON format):
 
 ```text
-C:\UPD-Service\Logs\UPD-Service_YYYY-MM-DD.json
+C:\Resize-UserProfileDisk\Logs\Resize-UserProfileDisk_YYYY-MM-DD.json
 ```
 
 **Job History**:
 
 ```text
-C:\UPD-Service\JobHistory\{jobId}.json
+C:\Resize-UserProfileDisk\JobHistory\{jobId}.json
 ```
 
 **Windows Service Logs**:
 
 ```text
-C:\UPD-Service\Logs\service-stdout.log
-C:\UPD-Service\Logs\service-stderr.log
+C:\Resize-UserProfileDisk\Logs\service-stdout.log
+C:\Resize-UserProfileDisk\Logs\service-stderr.log
 ```
 
 View logs in real-time via the **Logs** tab in the web interface.
@@ -255,7 +255,7 @@ View logs in real-time via the **Logs** tab in the web interface.
    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
    ```
 
-3. Check service logs in `C:\UPD-Service\Logs\`
+3. Check service logs in `C:\Resize-UserProfileDisk\Logs\`
 4. Test the service manually:
 
    ```powershell
@@ -273,13 +273,13 @@ View logs in real-time via the **Logs** tab in the web interface.
 1. Verify service is running:
 
    ```powershell
-   Get-Service UPD-WebService
+   Get-Service Resize-UserProfileDisk
    ```
 
 2. Check firewall rules:
 
    ```powershell
-   Get-NetFirewallRule -DisplayName "UPD Web Service"
+   Get-NetFirewallRule -DisplayName "Resize-UserProfileDisk"
    ```
 
 3. Test local access: `http://localhost:8080`

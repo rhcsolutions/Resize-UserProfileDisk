@@ -1,9 +1,9 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    Install or uninstall the User Profile Disk Web Service
+    Install or uninstall the Resize-UserProfileDisk Web Service
 .DESCRIPTION
-    This script installs the UPD Web Service as a Windows Service using NSSM (Non-Sucking Service Manager).
+    This script installs the Resize-UserProfileDisk Web Service as a Windows Service using NSSM (Non-Sucking Service Manager).
     Works on Windows Server 2016 and later.
 .PARAMETER Action
     Install, Uninstall, Start, Stop, or Restart the service
@@ -19,7 +19,7 @@ param(
     [string]$Action,
     
     [Parameter(Mandatory=$false)]
-    [string]$ServicePath = "C:\UPD-Service",
+    [string]$ServicePath = "C:\Resize-UserProfileDisk",
     
     [Parameter(Mandatory=$false)]
     [int]$Port = 8080
@@ -35,8 +35,8 @@ if (Test-Path $configPath) {
     $ServiceDisplayName = $config.ServiceDisplayName
     $ServiceDescription = $config.ServiceDescription
 } else {
-    $ServiceName = "UPD-WebService"
-    $ServiceDisplayName = "User Profile Disk Web Service"
+    $ServiceName = "Resize-UserProfileDisk"
+    $ServiceDisplayName = "Resize User Profile Disk Service"
     $ServiceDescription = "Web service for managing and resizing User Profile Disk (VHDX) files"
 }
 
@@ -68,7 +68,7 @@ function Get-NSSM {
 }
 
 function Install-Service {
-    Write-Host "`n=== Installing UPD Web Service ===" -ForegroundColor Cyan
+    Write-Host "`n=== Installing Resize-UserProfileDisk Web Service ===" -ForegroundColor Cyan
     
     # Check if service already exists
     $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
@@ -87,7 +87,7 @@ function Install-Service {
     Write-Host "Copying service files..." -ForegroundColor Cyan
     
     $filesToCopy = @(
-        "UPD-WebService.ps1",
+        "Resize-UserProfileDisk-WebService.ps1",
         "Resize-UserProfileDisk.ps1",
         "config.json",
         "Write-Log"  # This will copy the Write-Log function file if exists
@@ -115,7 +115,7 @@ function Install-Service {
     # Create service
     Write-Host "Installing Windows Service..." -ForegroundColor Cyan
     
-    $servicePsScript = Join-Path $ServicePath "UPD-WebService.ps1"
+    $servicePsScript = Join-Path $ServicePath "Resize-UserProfileDisk-WebService.ps1"
     $powershellPath = (Get-Command powershell.exe).Source
     
     & $nssmPath install $ServiceName $powershellPath `
@@ -155,9 +155,9 @@ function Install-Service {
     # Configure firewall
     Write-Host "Configuring Windows Firewall..." -ForegroundColor Cyan
     
-    $firewallRule = Get-NetFirewallRule -DisplayName "UPD Web Service" -ErrorAction SilentlyContinue
+    $firewallRule = Get-NetFirewallRule -DisplayName "Resize-UserProfileDisk" -ErrorAction SilentlyContinue
     if (!$firewallRule) {
-        New-NetFirewallRule -DisplayName "UPD Web Service" `
+        New-NetFirewallRule -DisplayName "Resize-UserProfileDisk" `
             -Direction Inbound `
             -Protocol TCP `
             -LocalPort $Port `
@@ -184,7 +184,7 @@ function Install-Service {
 }
 
 function Uninstall-Service {
-    Write-Host "`n=== Uninstalling UPD Web Service ===" -ForegroundColor Cyan
+    Write-Host "`n=== Uninstalling Resize-UserProfileDisk Web Service ===" -ForegroundColor Cyan
     
     # Check if service exists
     $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
@@ -221,7 +221,7 @@ function Uninstall-Service {
     
     # Remove firewall rule
     Write-Host "Removing firewall rule..." -ForegroundColor Cyan
-    Remove-NetFirewallRule -DisplayName "UPD Web Service" -ErrorAction SilentlyContinue
+    Remove-NetFirewallRule -DisplayName "Resize-UserProfileDisk" -ErrorAction SilentlyContinue
     
     # Remove URL reservation
     Write-Host "Removing URL reservation..." -ForegroundColor Cyan
@@ -275,7 +275,7 @@ function Get-ServiceStatus {
         return
     }
     
-    Write-Host "`n=== UPD Web Service Status ===" -ForegroundColor Cyan
+    Write-Host "`n=== Resize-UserProfileDisk Web Service Status ===" -ForegroundColor Cyan
     Write-Host "Service Name: $($service.Name)" -ForegroundColor White
     Write-Host "Display Name: $($service.DisplayName)" -ForegroundColor White
     Write-Host "Status: $($service.Status)" -ForegroundColor $(if ($service.Status -eq 'Running') { 'Green' } else { 'Yellow' })

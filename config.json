@@ -1,12 +1,12 @@
 {
   "Port": 8080,
-  "LogPath": "C:\\UPD-Service\\Logs",
-  "WebRoot": "C:\\UPD-Service\\Web",
-  "JobHistoryPath": "C:\\UPD-Service\\JobHistory",
+  "LogPath": "C:\\Resize-UserProfileDisk\\Logs",
+  "WebRoot": "C:\\Resize-UserProfileDisk\\Web",
+  "JobHistoryPath": "C:\\Resize-UserProfileDisk\\JobHistory",
   "MaxConcurrentJobs": 1,
   "LogRetentionDays": 30,
   "DefaultUPDPath": "D:\\UPD",
-  "ServiceName": "UPD-WebService",
-  "ServiceDisplayName": "User Profile Disk Web Service",
+  "ServiceName": "Resize-UserProfileDisk",
+  "ServiceDisplayName": "Resize User Profile Disk Service",
   "ServiceDescription": "Web service for managing and resizing User Profile Disk (VHDX) files"
 }

@@ -104,12 +104,22 @@ function toggleMode() {
 
 // Called from HTML onclick handler
 function browsePath() {
-    showNotification('File browsing requires local file system access. Please type the path manually.', 'info');
+    const pathInput = document.getElementById('pathInput');
+    const currentPath = pathInput.value || 'D:\\UPD';
+    const newPath = prompt('Enter the full path to the UPD folder:', currentPath);
+    if (newPath) {
+        pathInput.value = newPath;
+    }
 }
 
 // Called from HTML onclick handler
 function browseFile() {
-    showNotification('File browsing requires local file system access. Please type the path manually.', 'info');
+    const fileInput = document.getElementById('singleFileInput');
+    const currentPath = fileInput.value || 'D:\\UPD\\UVHD-S-1-5-21-xxx.vhdx';
+    const newPath = prompt('Enter the full path to the VHDX file:', currentPath);
+    if (newPath) {
+        fileInput.value = newPath;
+    }
 }
 
 // API Calls
