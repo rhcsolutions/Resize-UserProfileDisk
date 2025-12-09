@@ -1,6 +1,21 @@
+/* eslint-disable no-unused-vars */
+// Functions showTab, browsePath, browseFile, testConnection, submitResizeJob, refreshJobs, viewJobDetails, refreshLogs, refreshStats are called from HTML
+
 // Configuration
 const API_BASE = '';
 let refreshInterval = null;
+
+// Expose functions to global scope for HTML onclick handlers
+window.showTab = showTab;
+window.browsePath = browsePath;
+window.browseFile = browseFile;
+window.testConnection = testConnection;
+window.submitResizeJob = submitResizeJob;
+window.refreshJobs = refreshJobs;
+window.viewJobDetails = viewJobDetails;
+window.refreshLogs = refreshLogs;
+window.refreshStats = refreshStats;
+window.toggleMode = toggleMode;
 
 // Utility Functions
 function showNotification(message, type = 'info') {
@@ -40,12 +55,13 @@ function formatUptime(uptime) {
 }
 
 // Tab Management
+// Called from HTML onclick handlers
 function showTab(tabName) {
     const tabs = document.querySelectorAll('.tab-content');
     const buttons = document.querySelectorAll('.tab-button');
     
-    tabs.forEach(tab => tab.classList.remove('active'));
-    buttons.forEach(btn => btn.classList.remove('active'));
+    tabs.forEach(tab => { tab.classList.remove('active'); });
+    buttons.forEach(btn => { btn.classList.remove('active'); });
     
     document.getElementById(tabName).classList.add('active');
     event.target.classList.add('active');
@@ -86,15 +102,18 @@ function toggleMode() {
     }
 }
 
+// Called from HTML onclick handler
 function browsePath() {
     showNotification('File browsing requires local file system access. Please type the path manually.', 'info');
 }
 
+// Called from HTML onclick handler
 function browseFile() {
     showNotification('File browsing requires local file system access. Please type the path manually.', 'info');
 }
 
 // API Calls
+// Called from HTML onclick handler
 async function testConnection() {
     try {
         const response = await fetch(`${API_BASE}/api/status`);
@@ -127,7 +146,7 @@ async function updateServiceStatus() {
         } else {
             document.getElementById('serviceStatus').textContent = '🔴 Service Offline';
         }
-    } catch (error) {
+    } catch (_error) {
         document.getElementById('serviceStatus').textContent = '🔴 Connection Error';
     }
 }
@@ -168,16 +187,14 @@ async function updateCurrentJob(jobId) {
                         <div class="progress-bar">
                             <div class="progress-fill" style="width: ${job.Progress}%"></div>
                         </div>
-                    ` : ''}
-                </div>
-            `;
+            ` : ''}
+        </div>
+    `;
         }
-    } catch (error) {
-        console.error('Error fetching current job:', error);
+    } catch (_error) {
+        console.error('Error fetching current job:', _error);
     }
-}
-
-async function submitResizeJob(event) {
+}async function submitResizeJob(event) {
     event.preventDefault();
     
     const mode = document.querySelector('input[name="mode"]:checked').value;
@@ -255,6 +272,7 @@ async function refreshJobs() {
     }
 }
 
+// Called from HTML onclick handler
 async function viewJobDetails(jobId) {
     try {
         const response = await fetch(`${API_BASE}/api/jobs/${jobId}`);
@@ -285,7 +303,7 @@ ${job.Errors.length > 0 ? '\nErrors:\n' + job.Errors.join('\n') : ''}
             
             alert(details);
         }
-    } catch (error) {
+    } catch (_error) {
         showNotification('Failed to load job details', 'error');
     }
 }
@@ -318,8 +336,8 @@ async function refreshLogs() {
                 </div>
             `).join('');
         }
-    } catch (error) {
-        console.error('Error fetching logs:', error);
+    } catch (_error) {
+        console.error('Error fetching logs:', _error);
         showNotification('Failed to load logs', 'error');
     }
 }
