@@ -18,7 +18,7 @@ A modern web-based service for managing and resizing Windows User Profile Disk (
 - Windows Server 2016 or later
 - PowerShell 5.1 or later
 - Administrator privileges
-- NSSM (automatically downloaded by installer)
+- NSSM (included in repository)
 - SDelete.exe (optional, for zero free space operations)
 
 ## 🚀 Quick Start

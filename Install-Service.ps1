@@ -46,52 +46,24 @@ function Test-Administrator {
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
-function Install-NSSM {
+function Get-NSSM {
     Write-Host "Checking for NSSM..." -ForegroundColor Cyan
     
-    $nssmPath = Join-Path $PSScriptRoot "nssm.exe"
+    # Determine architecture and select appropriate NSSM executable
+    $arch = if ([Environment]::Is64BitOperatingSystem) { "64-bit" } else { "32-bit" }
+    $nssmFileName = if ([Environment]::Is64BitOperatingSystem) { "nssm.exe" } else { "nssm-x86.exe" }
+    $nssmPath = Join-Path $PSScriptRoot $nssmFileName
     
     if (!(Test-Path $nssmPath)) {
-        Write-Host "NSSM not found. Downloading..." -ForegroundColor Yellow
-        
-        $nssmUrl = "https://nssm.cc/release/nssm-2.24.zip"
-        $zipPath = Join-Path $env:TEMP "nssm.zip"
-        $extractPath = Join-Path $env:TEMP "nssm"
-        
-        try {
-            # Download NSSM
-            Invoke-WebRequest -Uri $nssmUrl -OutFile $zipPath -UseBasicParsing
-            
-            # Extract
-            Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
-            
-            # Copy appropriate version
-            $arch = if ([Environment]::Is64BitOperatingSystem) { "win64" } else { "win32" }
-            $nssmExe = Get-ChildItem -Path $extractPath -Recurse -Filter "nssm.exe" | 
-                Where-Object { $_.FullName -like "*\$arch\*" } | 
-                Select-Object -First 1
-            
-            if ($nssmExe) {
-                Copy-Item -Path $nssmExe.FullName -Destination $nssmPath -Force
-                Write-Host "NSSM downloaded successfully" -ForegroundColor Green
-            } else {
-                throw "Could not find NSSM executable in download"
-            }
-            
-            # Cleanup
-            Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
-            Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        catch {
-            Write-Host "Failed to download NSSM automatically." -ForegroundColor Red
-            Write-Host "Please download NSSM manually from https://nssm.cc/download" -ForegroundColor Yellow
-            Write-Host "Extract nssm.exe to: $PSScriptRoot" -ForegroundColor Yellow
-            throw
-        }
-    } else {
-        Write-Host "NSSM found at: $nssmPath" -ForegroundColor Green
+        Write-Host "NSSM not found at: $nssmPath" -ForegroundColor Red
+        Write-Host "The repository should include NSSM executables:" -ForegroundColor Yellow
+        Write-Host "  - nssm.exe (64-bit)" -ForegroundColor Yellow
+        Write-Host "  - nssm-x86.exe (32-bit)" -ForegroundColor Yellow
+        Write-Host "`nPlease ensure the NSSM executable is present in: $PSScriptRoot" -ForegroundColor Yellow
+        throw "NSSM executable not found"
     }
     
+    Write-Host "NSSM found at: $nssmPath ($arch)" -ForegroundColor Green
     return $nssmPath
 }
 
@@ -137,8 +109,8 @@ function Install-Service {
         Write-Host "  Copied: Web directory" -ForegroundColor Gray
     }
     
-    # Install NSSM
-    $nssmPath = Install-NSSM
+    # Get NSSM path
+    $nssmPath = Get-NSSM
     
     # Create service
     Write-Host "Installing Windows Service..." -ForegroundColor Cyan
@@ -213,13 +185,21 @@ function Uninstall-Service {
     # Get NSSM
     $nssmPath = Join-Path $PSScriptRoot "nssm.exe"
     if (!(Test-Path $nssmPath)) {
-        Write-Host "NSSM not found. Using sc.exe..." -ForegroundColor Yellow
-        sc.exe delete $ServiceName
-    } else {
-        # Remove service
-        Write-Host "Removing service..." -ForegroundColor Cyan
-        & $nssmPath remove $ServiceName confirm
+        # Try 32-bit version
+        $nssmPath = Join-Path $PSScriptRoot "nssm-x86.exe"
+        if (!(Test-Path $nssmPath)) {
+            Write-Host "NSSM not found. Using sc.exe..." -ForegroundColor Yellow
+            sc.exe delete $ServiceName
+            Write-Host "`nService uninstalled successfully!" -ForegroundColor Green
+            Write-Host "Service files remain at: $ServicePath" -ForegroundColor White
+            Write-Host "To remove files, delete the directory manually." -ForegroundColor Yellow
+            return
+        }
     }
+    
+    # Remove service
+    Write-Host "Removing service..." -ForegroundColor Cyan
+    & $nssmPath remove $ServiceName confirm
     
     # Remove firewall rule
     Write-Host "Removing firewall rule..." -ForegroundColor Cyan
