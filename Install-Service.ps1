@@ -163,6 +163,14 @@ function Install-Service {
     Write-Host "Service Path: $ServicePath" -ForegroundColor White
     Write-Host "Web Interface: http://localhost:$Port" -ForegroundColor White
     Write-Host "`nTo start the service, run: .\Install-Service.ps1 -Action Start" -ForegroundColor Yellow
+    Write-Host "`nStarting service and opening web browser..." -ForegroundColor Cyan
+    
+    # Start the service
+    Start-Service -Name $ServiceName
+    Start-Sleep -Seconds 3
+    
+    # Open web browser
+    Start-Process "http://localhost:$Port"
 }
 
 function Uninstall-Service {
@@ -217,6 +225,8 @@ function Start-ServiceCommand {
     $service = Get-Service -Name $ServiceName
     Write-Host "Service Status: $($service.Status)" -ForegroundColor Green
     Write-Host "Web Interface: http://localhost:$Port" -ForegroundColor White
+    Write-Host "`nOpening web browser..." -ForegroundColor Cyan
+    Start-Process "http://localhost:$Port"
 }
 
 function Stop-ServiceCommand {
@@ -234,6 +244,8 @@ function Restart-ServiceCommand {
     $service = Get-Service -Name $ServiceName
     Write-Host "Service Status: $($service.Status)" -ForegroundColor Green
     Write-Host "Web Interface: http://localhost:$Port" -ForegroundColor White
+    Write-Host "`nOpening web browser..." -ForegroundColor Cyan
+    Start-Process "http://localhost:$Port"
 }
 
 function Get-ServiceStatus {
