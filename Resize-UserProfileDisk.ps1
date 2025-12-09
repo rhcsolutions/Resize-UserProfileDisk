@@ -184,7 +184,6 @@ function Resize-UserProfileDisk {
 
         try {
             New-Item -Path $PSScriptRoot\Logging -name Diskpart_log_$timestamp.log -ItemType file -Force | Out-Null   
-            New-Item -Path $PSScriptRoot\diskpart_script.txt -ItemType file -Force | out-null
 
             if ((Test-Path $PSScriptRoot\Logging\Diskpart_log_$timestamp.log) -eq $true) {
                 Write-Log -severity Information -message "Creating log Diskpart_log_$timestamp.log... Done"
@@ -293,19 +292,29 @@ function Resize-UserProfileDisk {
         #startregion foreach loop through vhdx files
         foreach ($vhdx in $vhdxFiles) {
 
+            Write-Log -severity Information -message "========================================="
+            Write-Log -severity Information -message "Processing: $vhdx"
+            
+            # Get initial size
+            try {
+                $vhdxInfo = Get-VHD -Path $vhdx -ErrorAction Stop
+                $sizeBefore = [math]::Round($vhdxInfo.FileSize / 1GB, 2)
+                Write-Log -severity Information -message "BEFORE: VHDX file size = $sizeBefore GB"
+            } catch {
+                Write-Log -severity Error -message "Failed to get VHDX info for $vhdx : $($_.Exception.Message)"
+                continue
+            }
+
             #startregion Check if file is locked
             if ((Test-FileIsLocked -Path $vhdx -ErrorAction SilentlyContinue) -eq $false) {
-                $fileString = 'select vdisk file="' + $vhdx + '"' 
-                Add-Content -Path diskpart_script.txt $fileString
-                Add-Content diskpart_script.txt "attach vdisk readonly"
-                Add-Content diskpart_script.txt "compact vdisk"
-                Add-Content diskpart_script.txt "detach vdisk"
                 Write-Log -severity Information -message "$vhdx is accessible."
                 $vhdxArray.add($vhdx) | Out-Null
             }
             Else {
-                Write-Log -severity Error -message "Access denied on $vhdx."                
+                Write-Log -severity Error -message "Access denied on $vhdx - file is locked by another process."
+                continue                
             }
+        }
         #endregion foreach loop through vhdx files
         
         #startregion defrag
@@ -343,8 +352,12 @@ function Resize-UserProfileDisk {
                     continue               
                 }                    
                 Write-Log -severity Information -message "Defrag: Starting Defrag of $vhdx... Mounted with driveletter $DriveLetter"
-				chkdsk.exe "$($Driveletter):" /f /x
-				defrag.exe "$($Driveletter):" /H /X
+                
+                # Run chkdsk and defrag
+                Write-Log -severity Information -message "Defrag: Running CHKDSK on $($Driveletter):"
+				chkdsk.exe "$($Driveletter):" /f /x | Out-Null
+                Write-Log -severity Information -message "Defrag: Running DEFRAG on $($Driveletter):"
+				defrag.exe "$($Driveletter):" /H /X | Out-Null
 
                 Do {
                     $defragging = Get-Process defrag.exe -ErrorAction SilentlyContinue
@@ -444,17 +457,60 @@ function Resize-UserProfileDisk {
             } 
         }
 
-        #startregion Diskpart is compacting the .vhdx-file(s)
-        try {
-            Write-Log -severity Information -message "Starting shrinking of the .vhdx-files. DISKPART /S is using the $PSScriptRoot\diskpart_script.txt script file."
-            DISKPART /s "$PSScriptRoot\diskpart_script.txt" > "$PSScriptRoot\Logging\Diskpart_log_$timestamp.log"
-            Write-Log -severity Information -message "Starting shrinking of the .vhdx-files... Done"
+        #startregion Shrink each VHDX individually
+        Write-Log -severity Information -message "Starting shrinking operation for all VHDX files..."
+        
+        foreach ($vhdx in $vhdxArray) {
+            try {
+                Write-Log -severity Information -message " "
+                Write-Log -severity Information -message "SHRINK: Processing $vhdx"
+                
+                # Mount as read-write to allow shrinking
+                Write-Log -severity Information -message "SHRINK: Mounting VHDX..."
+                $mountResult = Mount-VHD -Path $vhdx -Passthru -ErrorAction Stop
+                
+                # Get disk number
+                $diskNumber = $mountResult.DiskNumber
+                Write-Log -severity Information -message "SHRINK: Mounted as Disk $diskNumber"
+                
+                # Ensure disk is online and writable
+                Set-Disk -Number $diskNumber -IsOffline $false -ErrorAction SilentlyContinue
+                Set-Disk -Number $diskNumber -IsReadOnly $false -ErrorAction SilentlyContinue
+                
+                # Dismount before shrinking (required for Resize-VHD)
+                Write-Log -severity Information -message "SHRINK: Dismounting before resize..."
+                Dismount-VHD -Path $vhdx -ErrorAction Stop
+                
+                # Get size before shrink
+                $vhdxInfoBefore = Get-VHD -Path $vhdx
+                $sizeBeforeShrink = [math]::Round($vhdxInfoBefore.FileSize / 1GB, 2)
+                
+                # Perform the shrink operation
+                Write-Log -severity Information -message "SHRINK: Resizing VHDX to minimum size..."
+                Resize-VHD -Path $vhdx -ToMinimumSize -ErrorAction Stop
+                
+                # Get size after shrink
+                $vhdxInfoAfter = Get-VHD -Path $vhdx
+                $sizeAfterShrink = [math]::Round($vhdxInfoAfter.FileSize / 1GB, 2)
+                $savedSpace = [math]::Round($sizeBeforeShrink - $sizeAfterShrink, 2)
+                
+                Write-Log -severity Information -message "SHRINK: AFTER: VHDX file size = $sizeAfterShrink GB (was $sizeBeforeShrink GB)"
+                Write-Log -severity Information -message "SHRINK: Space saved = $savedSpace GB"
+                Write-Log -severity Information -message "SHRINK: Completed successfully for $vhdx"
+                
+            } catch {
+                $errorMsg = $_.Exception.Message
+                Write-Log -severity Error -message "SHRINK: Failed to shrink $vhdx - $errorMsg"
+                
+                # Ensure VHDX is dismounted on error
+                try {
+                    Dismount-VHD -Path $vhdx -ErrorAction SilentlyContinue
+                } catch {}
+            }
         }
-        Catch {
-            $ErrorMessage = $_.exception.Message
-            Write-Log -severity Error -message "Starting shrinking of the .vhdx-files... Failed. Error: $ErrorMessage"
-        }
-        #endregion Diskpart is compacting the .vhdx-file(s)
+        
+        Write-Log -severity Information -message "Shrinking operation completed for all files"
+        #endregion Shrink each VHDX individually
 
     } # End Proces
     
@@ -462,7 +518,9 @@ function Resize-UserProfileDisk {
 
         # Verify that all User Profile Disks have been dismounted to avoid temporary profiles on users.
         #startregion Check mounted UPDs
-        Write-Log -severity Information -message "Check if there are still mounted UPDs"
+        Write-Log -severity Information -message " "
+        Write-Log -severity Information -message "========================================="
+        Write-Log -severity Information -message "Cleanup: Check if there are still mounted UPDs"
 
         try {
             $mountedupd = Get-Volume | Where-Object filesystemlabel -eq "User Disk"
@@ -471,21 +529,26 @@ function Resize-UserProfileDisk {
             $ErrorMessage = $_.exception.Message
             Write-Log -severity Error -message "Failed to get mounted volumes. Error: $ErrorMessage"
         }
-        Write-Log -severity Information -message "$($mountedupd.Count) mounted UPD(s) found. Try to dismounting."
+        Write-Log -severity Information -message "Cleanup: $($mountedupd.Count) mounted UPD(s) found. Attempting to dismount."
         if ($mountedupd.Count -gt 0) {
             try {
                 $mountedupd | ForEach-Object {
                     Get-DiskImage -DevicePath  $_.Path.trimend('\\') -EA SilentlyContinue
                 } | Where-Object ImagePath -notlike *$(([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value)* | Dismount-DiskImage
+                Write-Log -severity Information -message "Cleanup: UPDs dismounted successfully"
             }
             Catch {
                 $ErrorMessage = $_.exception.Message
-                Write-Log -severity Error -message "Failed to dismount UPDs. Error: $ErrorMessage"
+                Write-Log -severity Error -message "Cleanup: Failed to dismount UPDs. Error: $ErrorMessage"
             }
         }
         #endregion Check mounted UPDs
 
-        # Calculate file 
+        # Calculate final total size
+        Write-Log -severity Information -message " "
+        Write-Log -severity Information -message "========================================="
+        Write-Log -severity Information -message "FINAL SUMMARY"
+        
         $measure_after = ((Get-ChildItem $path -Recurse | Where-Object { $_.name -notlike "UVHD-template.vhdx" -and $_.Extension -like "*.vhdx" } | Measure-Object Length -s).Sum) / 1GB
         $measure_after = [math]::Round($measure_after, 2)
 
@@ -498,6 +561,12 @@ function Resize-UserProfileDisk {
         $FilesCount = $vhdxArray.count
         $FilesCountTotal = $vhdxFiles.count
 
+        Write-Log -severity Information -message "Total BEFORE: $measure_before GB"
+        Write-Log -severity Information -message "Total AFTER:  $measure_after GB"
+        Write-Log -severity Information -message "Total SAVED:  $savings GB"
+        Write-Log -severity Information -message "Files processed: $filescount of $FilesCountTotal"
+        Write-Log -severity Information -message "Elapsed time: $ElapsedTime"
+
         $ObjCalc = New-Object PSObject
         $ObjCalc | add-member Noteproperty "Date" $Date
         $ObjCalc | add-member Noteproperty "Path" $path
@@ -509,9 +578,6 @@ function Resize-UserProfileDisk {
         $Calc.Add($ObjCalc)
         $ObjCalc | Export-Csv savings.csv -Append -NoTypeInformation -Delimiter ";"
 
-        Write-Log -severity Information -message "Script has an elapsed time of $ElapsedTime"
-        Write-Log -severity Information -message "Script has processed $filescount of $FilesCountTotal files"
-        Write-Log -severity Information -message "Resizing-UserProfileDisk script ending..."
         Write-Log -severity Information -message "---------- ENDING --------"
     } # End 
 } # End Resize-UserProfileDisk function 
