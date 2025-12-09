@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile Disk Management</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖥️ User Profile Disk Management</h1>
+            <div class="status-bar" id="statusBar">
+                <span id="serviceStatus">⚪ Connecting...</span>
+                <span id="currentJob"></span>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" onclick="showTab('operations')">Operations</button>
+            <button class="tab-button" onclick="showTab('jobs')">Jobs</button>
+            <button class="tab-button" onclick="showTab('logs')">Logs</button>
+            <button class="tab-button" onclick="showTab('stats')">Statistics</button>
+        </nav>
+
+        <!-- Operations Tab -->
+        <div id="operations" class="tab-content active">
+            <section class="card">
+                <h2>New Resize Operation</h2>
+                <form id="resizeForm">
+                    <div class="form-group">
+                        <label>
+                            <input type="radio" name="mode" value="path" checked onchange="toggleMode()">
+                            Resize all VHDX files in folder
+                        </label>
+                        <input type="text" id="pathInput" placeholder="D:\UPD" required>
+                        <button type="button" class="btn-secondary" onclick="browsePath()">Browse</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="radio" name="mode" value="single" onchange="toggleMode()">
+                            Resize single VHDX file
+                        </label>
+                        <input type="text" id="singleFileInput" placeholder="D:\UPD\UVHD-S-1-5-21-xxx.vhdx" disabled>
+                        <button type="button" class="btn-secondary" onclick="browseFile()" id="browseFileBtn" disabled>Browse</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox">
+                            <input type="checkbox" id="includeTemplate">
+                            Include UVHD-template.vhdx
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox">
+                            <input type="checkbox" id="defrag">
+                            Defragment before compacting
+                        </label>
+                        <small>Optimizes space allocation for better compression</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="checkbox">
+                            <input type="checkbox" id="zeroFreeSpace">
+                            Zero free space (SDelete)
+                        </label>
+                        <small>Requires sdelete.exe in service directory</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Start Resize Operation</button>
+                        <button type="button" class="btn-secondary" onclick="testConnection()">Test Connection</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="card" id="currentJobCard" style="display:none;">
+                <h2>Current Operation</h2>
+                <div id="currentJobDetails"></div>
+            </section>
+        </div>
+
+        <!-- Jobs Tab -->
+        <div id="jobs" class="tab-content">
+            <section class="card">
+                <div class="section-header">
+                    <h2>Job History</h2>
+                    <button class="btn-secondary" onclick="refreshJobs()">🔄 Refresh</button>
+                </div>
+                <div class="filter-bar">
+                    <select id="jobStatusFilter" onchange="refreshJobs()">
+                        <option value="">All Statuses</option>
+                        <option value="Queued">Queued</option>
+                        <option value="Running">Running</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Failed">Failed</option>
+                    </select>
+                </div>
+                <table id="jobsTable">
+                    <thead>
+                        <tr>
+                            <th>Job ID</th>
+                            <th>Status</th>
+                            <th>Path</th>
+                            <th>Created</th>
+                            <th>Duration</th>
+                            <th>Files</th>
+                            <th>Savings (GB)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobsTableBody">
+                        <tr><td colspan="8" class="loading">Loading jobs...</td></tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="logs" class="tab-content">
+            <section class="card">
+                <div class="section-header">
+                    <h2>Service Logs</h2>
+                    <button class="btn-secondary" onclick="refreshLogs()">🔄 Refresh</button>
+                </div>
+                <div class="filter-bar">
+                    <select id="logSeverityFilter" onchange="refreshLogs()">
+                        <option value="">All Severities</option>
+                        <option value="Error">Error</option>
+                        <option value="Warning">Warning</option>
+                        <option value="Information">Information</option>
+                        <option value="Debug">Debug</option>
+                    </select>
+                    <input type="text" id="logJobIdFilter" placeholder="Filter by Job ID" onchange="refreshLogs()">
+                    <select id="logCountFilter" onchange="refreshLogs()">
+                        <option value="50">Last 50</option>
+                        <option value="100" selected>Last 100</option>
+                        <option value="500">Last 500</option>
+                    </select>
+                </div>
+                <div id="logsContainer" class="logs-container">
+                    <div class="loading">Loading logs...</div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div id="stats" class="tab-content">
+            <section class="card">
+                <h2>Service Statistics</h2>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statUptime">-</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotalJobs">-</div>
+                        <div class="stat-label">Total Jobs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statCompleted">-</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statFailed">-</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statRunning">-</div>
+                        <div class="stat-label">Running</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statQueued">-</div>
+                        <div class="stat-label">Queued</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
